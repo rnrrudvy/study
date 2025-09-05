@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>게시판</title>
+</head>
+<body>
+    <h1>📋 게시판</h1>
+    <a href="/write">글쓰기</a>
+    <ul>
+        {% for post in posts %}
+            <li><b>{{ post[1] }}</b>: {{ post[2] }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

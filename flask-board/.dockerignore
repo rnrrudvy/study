@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+
+# VCS
+.git
+.gitignore
+
+# IDE/Editor
+.vscode
+.idea
+
+# OS
+.DS_Store
+
+# Local db and runtime files
+board.db
+.flask.pid
+/tmp/
+*.log
+
+# Node (just in case)
+node_modules
+npm-debug.log

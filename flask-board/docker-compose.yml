@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    image: flask-board:compose
+    container_name: flask-board
+    ports:
+      - "5001:5000"
+    environment:
+      - PORT=5000
+    volumes:
+      - ./board.db:/app/board.db
+    restart: unless-stopped
