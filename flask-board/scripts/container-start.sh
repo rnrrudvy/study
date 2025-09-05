@@ -1,24 +1,19 @@
 #!/bin/zsh
 set -e
-IMAGE="flask-board:local"
-NAME="flask-board"
+DIR="$(cd "$(dirname "$0")"/.. && pwd)"
+cd "$DIR"
+
+# Allow overriding host port used in compose via env substitution if defined in compose
 HOST_PORT="${1:-5001}"
-CONTAINER_PORT="${2:-5000}"
+export HOST_PORT
 
-# Build if image missing
-if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  echo "Image $IMAGE not found. Building..."
-  docker build -t "$IMAGE" .
+# Optional build: BUILD=1 ./scripts/container-start.sh
+if [ -n "${BUILD:-}" ]; then
+  echo "Building images via docker compose..."
+  docker compose build
 fi
 
-# Stop existing container with same name
-if docker ps -a --format '{{.Names}}' | grep -q "^${NAME}$"; then
-  echo "Stopping existing container ${NAME}..."
-  docker stop "$NAME" >/dev/null || true
-fi
-
-# Run
-echo "Starting container ${NAME} on port ${HOST_PORT} -> ${CONTAINER_PORT}"
-docker run -d --name "$NAME" -p ${HOST_PORT}:${CONTAINER_PORT} --rm "$IMAGE"
+echo "Starting stack via docker compose (HOST_PORT=${HOST_PORT})..."
+docker compose up -d
 
 echo "Open: http://127.0.0.1:${HOST_PORT}"

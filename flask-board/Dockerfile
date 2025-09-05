@@ -10,6 +10,9 @@ WORKDIR /app
 
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
     curl \
+    gcc \
+    g++ \
+    libpq-dev \
     libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,8 +27,8 @@ EXPOSE 5000
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
-# 헬스체크: 루트 페이지 확인
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD curl -fsS http://127.0.0.1:$\{PORT\}/ || exit 1
+# 헬스체크: /healthz 확인
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD curl -fsS http://127.0.0.1:$\{PORT\}/healthz || exit 1
 
 # gunicorn으로 실행 (단일 워커, 개발용)
 CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app", "--access-logfile", "-", "--error-logfile", "-"]
