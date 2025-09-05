@@ -75,6 +75,12 @@ flask-board/
     local-stop.sh     # 로컬 종료 스크립트
     container-start.sh# 컨테이너 실행 (이미지 없으면 자동 빌드)
     container-stop.sh # 컨테이너 중지
+  tests/              # Python 단위 테스트
+  tests-ui/           # Playwright E2E 테스트 (TypeScript)
+  result/             # 테스트 결과 리포트 및 아티팩트
+  requirements-dev.txt# 개발용 의존성 (테스트 등)
+  node_modules/       # Node.js 의존성 (E2E 테스트용)
+  .venv/              # Python 가상환경
 ```
 
 ### 주요 라우트
@@ -103,3 +109,32 @@ flask-board/
 # 중지
 ./scripts/container-stop.sh
 ```
+
+### 테스트
+
+#### Python 단위 테스트
+
+```bash
+source .venv/bin/activate
+pytest
+```
+
+#### E2E UI 테스트 (Playwright)
+
+```bash
+# Playwright 설치 (최초 1회)
+npm install
+# 테스트 실행
+npx playwright test
+# 리포트 보기
+npx playwright show-report result/ui-report
+```
+
+- E2E 테스트는 회원가입, 로그인, 글쓰기, 삭제 등 주요 플로우를 자동화합니다.
+- 결과 리포트는 result/ui-report 폴더에 생성됩니다.
+
+### 개발 환경 참고
+
+- Python 패키지는 requirements.txt, requirements-dev.txt로 관리합니다.
+- Node.js 기반 E2E 테스트는 package.json, node_modules로 관리합니다.
+- .venv, node_modules 등은 git에 포함되지 않습니다.
