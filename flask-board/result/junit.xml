@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.247" timestamp="2025-09-05T22:23:41.991690+09:00" hostname="kpkuk-macbook-m4.local"><testcase classname="tests.test_e2e" name="test_register_login_write_delete" time="0.153" /></testsuite></testsuites>

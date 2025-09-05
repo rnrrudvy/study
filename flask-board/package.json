@@ -1,0 +1,12 @@
+{
+  "name": "flask-board-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "devDependencies": {
+    "@playwright/test": "^1.47.2"
+  },
+  "scripts": {
+    "test:ui": "playwright test"
+  }
+}
+

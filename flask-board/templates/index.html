@@ -24,7 +24,16 @@
     <div class="container">
         <header>
             <h1>📋 게시판</h1>
-            <a class="button" href="/write">글쓰기</a>
+            <div>
+                {% if current_user %}
+                    <span style="margin-right:8px;">안녕하세요, {{ current_user }}님</span>
+                    <a class="button" href="/write">글쓰기</a>
+                    <a class="button" style="background:#6b7280; margin-left:6px;" href="/logout">로그아웃</a>
+                {% else %}
+                    <a class="button" href="/login">로그인</a>
+                    <a class="button" style="background:#6b7280; margin-left:6px;" href="/register">회원가입</a>
+                {% endif %}
+            </div>
         </header>
 
         {% for p in posts %}
