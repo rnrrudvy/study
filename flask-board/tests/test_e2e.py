@@ -62,3 +62,5 @@ def test_register_login_write_delete():
     r = s.get(f"{BASE}/")
     assert title not in r.text
 
+
+
