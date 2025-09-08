@@ -1,9 +1,13 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 import sqlite3
 import os
+import logging
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import threading
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
@@ -169,6 +173,127 @@ def login():
 def logout():
 	session.pop("user", None)
 	return redirect(url_for("index"))
+
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        current_user = session.get("user")
+        if not current_user or current_user.get("role") != "admin":
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    with en.connect() as conn:
+        rows = conn.execute(text("SELECT id, username, role, created_at FROM users ORDER BY id ASC")).all()
+    return render_template("admin_users.html", users=rows, current_user=session.get("user"))
+
+@app.route("/admin/users/add", methods=["POST"])
+@admin_required
+def add_user():
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "").strip()
+    role = request.form.get("role", "user").strip()
+    admin_user = session.get("user")["username"]
+
+    if not username or not password or role not in ["user", "admin"]:
+        flash("입력값이 올바르지 않습니다.", "danger")
+        return redirect(url_for("admin_users"))
+
+    pw_hash = generate_password_hash(password)
+    try:
+        with en.begin() as conn:
+            conn.execute(
+                text("INSERT INTO users (username, password_hash, role) VALUES (:u, :p, :r)"),
+                {"u": username, "p": pw_hash, "r": role}
+            )
+        logging.info(f"Admin '{admin_user}' created user '{username}' with role '{role}'.")
+        flash(f"사용자 '{username}'이(가) 성공적으로 추가되었습니다.", "success")
+    except Exception as e:
+        logging.error(f"Error creating user '{username}' by admin '{admin_user}': {e}")
+        flash(f"'{username}' 사용자 추가에 실패했습니다. (아이디 중복 등)", "danger")
+    
+    return redirect(url_for("admin_users"))
+
+@app.route("/admin/users/delete/<int:user_id>", methods=["POST"])
+@admin_required
+def delete_user(user_id: int):
+    current_user = session.get("user")
+    admin_user = current_user["username"]
+
+    if current_user.get("id") == user_id:
+        flash("자기 자신을 삭제할 수 없습니다.", "danger")
+        return redirect(url_for("admin_users"))
+    
+    with en.begin() as conn:
+        # 삭제 전 사용자 이름 조회 (로깅용)
+        user_to_delete = conn.execute(text("SELECT username FROM users WHERE id = :id"), {"id": user_id}).scalar()
+        if user_to_delete:
+            conn.execute(text("DELETE FROM users WHERE id = :id"), {"id": user_id})
+            logging.info(f"Admin '{admin_user}' deleted user '{user_to_delete}' (ID: {user_id}).")
+            flash(f"사용자 '{user_to_delete}'이(가) 삭제되었습니다.", "success")
+        else:
+            flash("삭제할 사용자를 찾을 수 없습니다.", "danger")
+
+    return redirect(url_for("admin_users"))
+
+@app.route("/admin/users/edit_role/<int:user_id>", methods=["POST"])
+@admin_required
+def edit_user_role(user_id: int):
+    new_role = request.form.get("role", "").strip()
+    admin_user = session.get("user")["username"]
+
+    if new_role not in ["user", "admin"]:
+        flash("잘못된 역할입니다.", "danger")
+        return redirect(url_for("admin_users"))
+
+    with en.begin() as conn:
+        user_to_edit = conn.execute(text("SELECT username, role FROM users WHERE id = :id"), {"id": user_id}).first()
+        if not user_to_edit:
+            flash("수정할 사용자를 찾을 수 없습니다.", "danger")
+            return redirect(url_for("admin_users"))
+
+        # 마지막 관리자인 경우 역할 변경 방지
+        if user_to_edit.role == 'admin' and new_role == 'user':
+            admin_count = conn.execute(text("SELECT COUNT(*) FROM users WHERE role = 'admin'")).scalar()
+            if admin_count <= 1:
+                flash("마지막 남은 관리자의 역할은 변경할 수 없습니다.", "danger")
+                return redirect(url_for("admin_users"))
+
+        conn.execute(
+            text("UPDATE users SET role = :role WHERE id = :id"),
+            {"role": new_role, "id": user_id}
+        )
+        logging.info(f"Admin '{admin_user}' changed role of user '{user_to_edit.username}' to '{new_role}'.")
+        flash(f"'{user_to_edit.username}'의 역할이 '{new_role}'(으)로 변경되었습니다.", "success")
+
+    return redirect(url_for("admin_users"))
+
+@app.route("/admin/users/reset_password/<int:user_id>", methods=["POST"])
+@admin_required
+def reset_user_password(user_id: int):
+    admin_user = session.get("user")["username"]
+    new_password = "password" # 초기화 비밀번호
+    new_password_hash = generate_password_hash(new_password)
+
+    with en.begin() as conn:
+        user_to_reset = conn.execute(text("SELECT username FROM users WHERE id = :id"), {"id": user_id}).scalar()
+        if user_to_reset:
+            conn.execute(
+                text("UPDATE users SET password_hash = :p WHERE id = :id"),
+                {"p": new_password_hash, "id": user_id}
+            )
+            logging.info(f"Admin '{admin_user}' reset password for user '{user_to_reset}'.")
+            flash(f"'{user_to_reset}' 사용자의 비밀번호가 '{new_password}'(으)로 초기화되었습니다.", "success")
+        else:
+            flash("사용자를 찾을 수 없어 비밀번호를 초기화할 수 없습니다.", "danger")
+
+    return redirect(url_for("admin_users"))
+
 
 if __name__ == "__main__":
 	app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

@@ -27,6 +27,9 @@
             <div>
                 {% if current_user %}
                     <span style="margin-right:8px;">안녕하세요, {{ current_user.username }}님 ({{ current_user.role }})</span>
+                    {% if current_user.role == 'admin' %}
+                        <a class="button" style="background:#3b82f6; margin-right:6px;" href="/admin/users">사용자 관리</a>
+                    {% endif %}
                     <a class="button" href="/write">글쓰기</a>
                     <a class="button" style="background:#6b7280; margin-left:6px;" href="/logout">로그아웃</a>
                 {% else %}
