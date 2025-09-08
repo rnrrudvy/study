@@ -1,0 +1,29 @@
+{
+  "folders": [
+    {
+      "name": "Dropbox",
+      "path": "/Users/kpkuk/Library/CloudStorage/Dropbox/works/study/flask-board"
+    }
+  ],
+  "settings": {
+    "git.autorefresh": true,
+    "git.autoRepositoryDetection": true,
+    "git.autofetch": "all",
+    "files.autoSave": "off",
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.formatOnSave": true,
+    "[yaml]": {
+      "editor.insertSpaces": true,
+      "editor.tabSize": 2
+    },
+    "[json]": {
+      "editor.insertSpaces": true,
+      "editor.tabSize": 2
+    },
+    "[shellscript]": {
+      "editor.insertSpaces": true,
+      "editor.tabSize": 2
+    }
+  }
+}
