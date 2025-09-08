@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, redirect, session, url_for
 import sqlite3
 import os
+from werkzeug.security import generate_password_hash, check_password_hash
+
+import threading
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
@@ -35,12 +38,41 @@ users_table = Table(
 	Column("id", Integer, primary_key=True, autoincrement=True),
 	Column("username", String, nullable=False),
 	Column("password_hash", String, nullable=False),
+	Column("role", String, nullable=False, server_default="user"), # 역할 (admin, user)
 	Column("created_at", TIMESTAMP, server_default=func.now(), nullable=False),
 	UniqueConstraint("username", name="uq_users_username"),
 )
 
-# 테이블 생성 (DB에 맞춰 이식성 있게 생성)
-metadata.create_all(bind=en)
+# 데이터베이스 초기화를 위한 잠금 및 플래그
+db_init_lock = threading.Lock()
+db_initialized = False
+
+def initialize_database():
+    """데이터베이스 테이블과 기본 관리자 계정을 생성합니다 (최초 1회만 실행)."""
+    global db_initialized
+    with db_init_lock:
+        if db_initialized:
+            return
+        
+        # 테이블 생성 (DB에 맞춰 이식성 있게 생성)
+        metadata.create_all(bind=en)
+
+        # 기본 관리자 계정 생성
+        with en.begin() as conn:
+            admin_exists = conn.execute(text("SELECT 1 FROM users WHERE username = 'admin'")).first()
+            if not admin_exists:
+                pw_hash = generate_password_hash("admin")
+                conn.execute(
+                    text("INSERT INTO users (username, password_hash, role) VALUES (:u, :p, 'admin')"),
+                    {"u": "admin", "p": pw_hash}
+                )
+        
+        db_initialized = True
+
+@app.before_request
+def before_request_func():
+    """모든 요청 전에 데이터베이스 초기화를 확인하고 실행합니다."""
+    initialize_database()
 
 @app.route("/")
 def index():
@@ -55,7 +87,7 @@ def write():
 	if request.method == "POST":
 		title = request.form.get("title", "").strip()
 		content = request.form.get("content", "").strip()
-		author = session.get("user")
+		author = session.get("user")["username"]
 		if not title or not content:
 			return redirect("/")
 		with en.begin() as conn:
@@ -77,14 +109,22 @@ def healthz():
 
 @app.route("/delete/<int:post_id>", methods=["POST"])
 def delete(post_id: int):
-	if not session.get("user"):
+	current_user = session.get("user")
+	if not current_user:
 		return redirect(url_for("login"))
+
 	with en.begin() as conn:
-		# 본인 글만 삭제하도록 제한 (author 일치 시)
-		conn.execute(text("DELETE FROM posts WHERE id = :id AND author = :author"), {"id": post_id, "author": session.get("user")})
+		if current_user["role"] == "admin":
+			# 관리자는 모든 글 삭제 가능
+			conn.execute(text("DELETE FROM posts WHERE id = :id"), {"id": post_id})
+		else:
+			# 일반 사용자는 본인 글만 삭제 가능
+			conn.execute(
+				text("DELETE FROM posts WHERE id = :id AND author = :author"),
+				{"id": post_id, "author": current_user["username"]}
+			)
 	return redirect("/")
 
-from werkzeug.security import generate_password_hash, check_password_hash
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -96,7 +136,11 @@ def register():
 		pw_hash = generate_password_hash(password)
 		try:
 			with en.begin() as conn:
-				conn.execute(text("INSERT INTO users (username, password_hash) VALUES (:u, :p)"), {"u": username, "p": pw_hash})
+				# 기본 역할 'user'로 회원가입
+				conn.execute(
+					text("INSERT INTO users (username, password_hash) VALUES (:u, :p)"),
+					{"u": username, "p": pw_hash}
+				)
 		except Exception:
 			# 중복 등 오류 시 재시도
 			return redirect(url_for("register"))
@@ -109,9 +153,14 @@ def login():
 		username = request.form.get("username", "").strip()
 		password = request.form.get("password", "").strip()
 		with en.connect() as conn:
-			row = conn.execute(text("SELECT id, username, password_hash FROM users WHERE username = :u"), {"u": username}).fetchone()
+			row = conn.execute(
+				text("SELECT id, username, password_hash, role FROM users WHERE username = :u"),
+				{"u": username}
+			).fetchone()
+
 		if row and check_password_hash(row[2], password):
-			session["user"] = row[1]
+			# 세션에 사용자 정보(딕셔너리) 저장
+			session["user"] = {"id": row[0], "username": row[1], "role": row[3]}
 			return redirect(url_for("index"))
 		return redirect(url_for("login"))
 	return render_template("login.html")

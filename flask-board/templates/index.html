@@ -26,7 +26,7 @@
             <h1>📋 게시판</h1>
             <div>
                 {% if current_user %}
-                    <span style="margin-right:8px;">안녕하세요, {{ current_user }}님</span>
+                    <span style="margin-right:8px;">안녕하세요, {{ current_user.username }}님 ({{ current_user.role }})</span>
                     <a class="button" href="/write">글쓰기</a>
                     <a class="button" style="background:#6b7280; margin-left:6px;" href="/logout">로그아웃</a>
                 {% else %}
@@ -44,11 +44,13 @@
                     {{ (p.created_at if p.created_at is defined else p[4]) }}
                 </div>
                 <div class="content">{{ p.content if p.content is defined else p[2] }}</div>
+                {% if current_user and (current_user.role == 'admin' or current_user.username == (p.author if p.author is defined else p[3])) %}
                 <div style="margin-top:8px;">
                     <form id="del-{{ p.id if p.id is defined else p[0] }}" class="inline" method="post" action="/delete/{{ p.id if p.id is defined else p[0] }}">
                         <button type="button" class="danger" onclick="confirmDelete('{{ p.id if p.id is defined else p[0] }}')">삭제</button>
                     </form>
                 </div>
+                {% endif %}
             </div>
         {% endfor %}
     </div>

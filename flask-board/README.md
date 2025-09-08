@@ -7,14 +7,23 @@
 - Python 3.13 (로컬 실행 시)
 - Docker (컨테이너 실행 시)
 
-### 로컬 실행 (가상환경)
+### 로컬 실행 (uv 사용)
+
+`uv`를 사용하여 가상 환경을 만들고 의존성을 설치합니다. `uv`가 설치되어 있지 않다면 먼저 설치해주세요 (`pip install uv`).
 
 ```bash
 cd "/Users/kpkuk/Library/CloudStorage/Dropbox/works/study/flask-board"
-python3 -m venv .venv
+
+# 가상환경 생성
+uv venv
+
+# 가상환경 활성화
 source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt  # 없으면 Flask 설치됨
+
+# 의존성 설치
+uv pip install -r requirements.txt
+
+# 앱 실행
 python app.py
 # 브라우저: http://127.0.0.1:5000
 ```

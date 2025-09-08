@@ -17,7 +17,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
-RUN pip install --upgrade pip && pip install -r /app/requirements.txt
+RUN pip install --upgrade pip && pip install uv && uv pip install --system -r /app/requirements.txt
 
 COPY . /app
 
@@ -31,4 +31,4 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD curl -fsS http://127.0.0.1:$\{PORT\}/healthz || exit 1
 
 # gunicorn으로 실행 (단일 워커, 개발용)
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app", "--access-logfile", "-", "--error-logfile", "-"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]
