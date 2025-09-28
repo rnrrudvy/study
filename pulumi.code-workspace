@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "name": "Dropbox",
+      "path": "/Users/kpkuk/Downloads/study"
+    }
+  ],
+  "settings": {
+    "git.autorefresh": true,
+    "git.autoRepositoryDetection": true,
+    "git.autofetch": "all",
+    "files.autoSave": "off",
+
+    "editor.insertSpaces": true, // Tab 대신 스페이스 입력
+    "editor.tabSize": 2, // Tab 크기 = 스페이스 2칸
+    "editor.detectIndentation": false, // 파일의 기존 들여쓰기 스타일 무시
+    "editor.formatOnSave": true,
+
+    "terminal.integrated.env.osx": {
+      "AWS_SHARED_CREDENTIALS_FILE": "/Users/kpkuk/Downloads/study/.aws/credentials",
+      "AWS_CONFIG_FILE": "/Users/kpkuk/Downloads/study/.aws/config"
+    }
+  }
+}

@@ -1,7 +1,0 @@
----
-description:
-globs:
-alwaysApply: true
----
-
-Always respond in Korean
